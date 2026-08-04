@@ -159,6 +159,12 @@
   .lb .gainpill + b{margin-left:12px}
   .lb li.me{color:var(--ink)}
   .lb li:not(.me){color:var(--dim)}
+  .lb.final li{padding:14px 2px}
+  .lb.final li:first-child{color:var(--ink)}
+  .lb.final li:first-child .nm{font-size:19px}
+  .lb.final li:first-child b{font-size:20px}
+  .lb.final .rank{width:26px;font-size:15px}
+  .lb.final .det{font-size:12px;letter-spacing:.06em}
   .waitmsg{margin:22px 0 0;font-weight:700;text-align:center}
   .answerRow{display:flex;justify-content:center;margin:6px 0 12px}
   #choices2{display:grid;gap:10px;margin-top:20px}
@@ -1268,6 +1274,9 @@ Object.assign(T.en, {
   offline: 'Live rooms need a connection. The pass-the-phone game works offline.',
   liveRounds: 'Questions', hostBadge: 'Host', you: 'you',
   leave: 'Leave the room', roomFull: 'That room is full.',
+  finalTitle: 'Final standings', playAgainLive: 'Play again, same room',
+  lastAnswer: 'Last question', winsBy: (n, p) => `${n} wins by ${p} point${p === 1 ? '' : 's'}`,
+  perfect: 'a clean sweep', dropped: n => `${n} left the room.`,
   noRoom: "No room with that code — check it and try again, or the host hasn't started one yet."
 });
 
@@ -1294,6 +1303,9 @@ Object.assign(T.fr, {
   offline: 'Les parties en ligne demandent une connexion. Le jeu à un seul téléphone marche hors ligne.',
   liveRounds: 'Questions', hostBadge: 'Hôte', you: 'toi',
   leave: 'Quitter la partie', roomFull: 'Cette partie est complète.',
+  finalTitle: 'Classement final', playAgainLive: 'Rejouer, même partie',
+  lastAnswer: 'Dernière question', winsBy: (n, p) => `${n} gagne de ${p} point${p === 1 ? '' : 's'}`,
+  perfect: 'un sans-faute', dropped: n => `${n} a quitté la partie.`,
   noRoom: 'Aucune partie avec ce code — vérifie-le, ou l’hôte n’a pas encore créé la partie.'
 });
 
@@ -1350,17 +1362,22 @@ function leaveRoom() {
 function handleMessage(event, p) {
   if (M.isHost) {
     if (event === 'hello') {
-      if (!M.players.some(x => x.id === p.id)) {
-        if (M.players.length >= MAX_PLAYERS) { M.net.send('full', { id: p.id }); return; }
-        M.players.push({ id: p.id, name: String(p.name || '?').slice(0, 18), score: 0, correct: 0, host: false });
-      }
+      const known = M.players.find(x => x.id === p.id);
+      if (known) { known.lastSeen = Date.now(); return; }   /* just a heartbeat */
+      if (M.players.length >= MAX_PLAYERS) { M.net.send('full', { id: p.id }); return; }
+      M.players.push({
+        id: p.id, name: String(p.name || '?').slice(0, 18),
+        score: 0, correct: 0, host: false, lastSeen: Date.now()
+      });
       broadcastSync();
       renderLive();
     } else if (event === 'answer') {
       takeAnswer(p);
     } else if (event === 'bye') {
       M.players = M.players.filter(x => x.id !== p.id);
+      delete M.answers[p.id];
       broadcastSync(); renderLive();
+      closeIfEveryoneAnswered();
     }
     return;
   }
@@ -1430,7 +1447,46 @@ function askLive() {
   M.hostTimer = setTimeout(closeQuestion, M.seconds * 1000 + 700);
 }
 
+/* Liveness is two separate questions, and conflating them is a trap.
+   Phones throttle timers to a crawl when the screen locks or the player
+   switches apps, so a quiet heartbeat does NOT mean someone has left.
+   QUIET_MS: stop *waiting* on them, so the round can end.
+   GONE_MS:  actually drop them from the room. Deliberately much longer. */
+const QUIET_MS = 15000;
+const GONE_MS = 60000;
+
+const seenRecently = p => p.host || !p.lastSeen || Date.now() - p.lastSeen < QUIET_MS;
+
+/* players the round is still legitimately waiting on */
+function waitingOn() {
+  return M.players.filter(p => !M.answers[p.id] && seenRecently(p));
+}
+
+function pruneAbsent() {
+  if (!M.isHost) return false;
+  const now = Date.now();
+  const gone = M.players.filter(p => !p.host && p.lastSeen && now - p.lastSeen > GONE_MS);
+  if (!gone.length) return false;
+  gone.forEach(p => { delete M.answers[p.id]; });
+  M.players = M.players.filter(p => !gone.includes(p));
+  M.answeredCount = Object.keys(M.answers).length;
+  M.notice = t('dropped')(gone.map(p => p.name).join(', '));
+  setTimeout(() => { M.notice = ''; renderLive(); }, 5000);
+  return true;
+}
+
+function closeIfEveryoneAnswered() {
+  if (M.phase !== 'question') return;
+  M.answeredCount = Object.keys(M.answers).length;
+  if (waitingOn().length === 0) {
+    clearTimeout(M.hostTimer);
+    M.hostTimer = setTimeout(closeQuestion, 250);
+  }
+}
+
 function takeAnswer(p) {
+  const who = M.players.find(x => x.id === p.id);
+  if (who) who.lastSeen = Date.now();   /* answering proves they're here */
   if (M.phase !== 'question' || p.qid !== M.qid || M.answers[p.id]) return;
   const limit = M.seconds * 1000;
   const elapsed = Math.min(Math.max(+p.elapsed || 0, 0), limit);
@@ -1440,7 +1496,7 @@ function takeAnswer(p) {
   M.answers[p.id] = { ok, elapsed, value: p.value };
   M.answeredCount = Object.keys(M.answers).length;
   broadcastSync(); renderLive();
-  if (M.answeredCount >= M.players.length) { clearTimeout(M.hostTimer); setTimeout(closeQuestion, 250); }
+  closeIfEveryoneAnswered();
 }
 
 function closeQuestion() {
@@ -1614,7 +1670,43 @@ function renderLive() {
     return;
   }
 
-  if (M.phase === 'reveal' || M.phase === 'final') {
+  if (M.phase === 'final') {
+    const explain = M.isHost ? M.q.explain : M.revealExplain;
+    const examples = M.isHost ? M.q.examples : M.revealExamples;
+    const ranked = [...M.players].sort((a, b) => b.score - a.score);
+    const top = ranked[0] ? ranked[0].score : 0;
+    const winners = ranked.filter(p => p.score === top);
+    const runnerUp = ranked.find(p => p.score < top);
+    const headline = winners.length > 1
+      ? t('tie')(winners.map(w => w.name).join(' & '))
+      : runnerUp ? t('winsBy')(ranked[0].name, top - runnerUp.score) : t('wins')(ranked[0].name);
+
+    el.innerHTML = `${notice}
+      <div class="card">
+        <div class="eyebrow">${t('finalTitle')}</div>
+        <div id="winner">${esc(headline)}</div>
+        <ul class="lb final">${ranked.map((p, i) => `<li${p.id === M.me.id ? ' class="me"' : ''}>
+          <span class="rank">${i + 1}</span><span class="nm">${esc(p.name)}</span>
+          <span class="det">${t('right')(p.correct, M.rounds)}</span><b>${p.score}</b></li>`).join('')}</ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:8px">${t('lastAnswer')}</div>
+        <p id="explain" style="margin:0">${explain}${examples ? ` <span style="color:var(--dim)">${t('egAccepted')} ${examples.map(esc).join(', ')}.</span>` : ''}</p>
+      </div>
+      ${M.isHost ? `<button class="primary" id="againLive">${t('playAgainLive')}</button>` : ''}
+      <p class="center" style="margin-top:16px"><button class="ghost" id="leaveBtn2">${t('leave')}</button></p>`;
+    const ag = $('#againLive');
+    if (ag) ag.onclick = () => {
+      M.players.forEach(p => { p.score = 0; p.correct = 0; });
+      M.phase = 'lobby'; M.qIndex = 0; M.results = null; M.qView = null;
+      G.seen.clear();
+      broadcastSync(); renderLive();
+    };
+    $('#leaveBtn2').onclick = leaveRoom;
+    return;
+  }
+
+  if (M.phase === 'reveal') {
     const explain = M.isHost ? M.q.explain : M.revealExplain;
     const examples = M.isHost ? M.q.examples : M.revealExamples;
     const mine = M.results && M.results.find(r => r.id === M.me.id);
@@ -1629,13 +1721,10 @@ function renderLive() {
         <p class="dimtext">${headline}</p>
       </div>
       <div class="card">
-        <div class="eyebrow" style="margin-bottom:6px">${M.phase === 'final' ? t('terminusLabel') : t('standings')}</div>
+        <div class="eyebrow" style="margin-bottom:6px">${t('standings')}</div>
         ${board(true)}
       </div>
-      ${M.phase === 'final'
-        ? `<button class="primary" id="leaveBtn2">${t('leave')}</button>`
-        : `<p class="dimtext center">${t('qOf')(M.qIndex, M.rounds)}</p>`}`;
-    const lv = $('#leaveBtn2'); if (lv) lv.onclick = leaveRoom;
+      <p class="dimtext center">${t('qOf')(M.qIndex, M.rounds)}</p>`;
     return;
   }
 
@@ -1681,7 +1770,12 @@ function hostRoom(name, code) {
   rememberRoom(code, name, true);
   connect(code, () => broadcastSync());
   clearInterval(M.beat);
-  M.beat = setInterval(() => { if (M.isHost) broadcastSync(); }, 3000);
+  M.beat = setInterval(() => {
+    if (!M.isHost) return;
+    if (pruneAbsent()) renderLive();
+    closeIfEveryoneAnswered();   /* re-check: someone may have just gone quiet */
+    broadcastSync();
+  }, 3000);
   show('live');
   renderLive();
 }
@@ -1711,6 +1805,14 @@ function joinAs(code, name) {
     if (M.phase === 'idle') { M.notice = t('noRoom'); renderLive(); }
   }, 6000);
 }
+
+/* Coming back from a locked screen or another app: timers were throttled to
+   near-nothing, so announce immediately rather than waiting for the next tick. */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !M.net) return;
+  if (M.isHost) broadcastSync();
+  else M.net.send('hello', { id: M.me.id, name: M.me.name });
+});
 
 /* the host tells the room when it closes the tab */
 window.addEventListener('pagehide', () => {
