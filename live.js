@@ -68,7 +68,7 @@ Object.assign(T.fr, {
 });
 
 const MAX_PLAYERS = 10;
-const REVEAL_MS = 6500;
+const REVEAL_MS = 3200;
 
 /* A room hosted from a dev copy hands out links nobody else can reach. */
 const IS_LOCAL = location.protocol === 'file:'
@@ -206,7 +206,7 @@ function askLive() {
   broadcastSync();
   renderLive();
   clearTimeout(M.hostTimer);
-  M.hostTimer = setTimeout(closeQuestion, M.seconds * 1000 + 700);
+  M.hostTimer = setTimeout(closeQuestion, M.seconds * 1000 + 300);
 }
 
 /* Liveness is two separate questions, and conflating them is a trap.
@@ -242,7 +242,7 @@ function closeIfEveryoneAnswered() {
   M.answeredCount = Object.keys(M.answers).length;
   if (waitingOn().length === 0) {
     clearTimeout(M.hostTimer);
-    M.hostTimer = setTimeout(closeQuestion, 250);
+    M.hostTimer = setTimeout(closeQuestion, 150);
   }
 }
 
@@ -407,7 +407,7 @@ function renderLive() {
           : q.isTyped
             ? `<div id="typed2"><input id="typedInput2" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(t(q.ph))}">
                <button id="typedSubmit2" class="primary">${t('submit')}</button></div>`
-            : `<div id="choices2">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${c}</button>`).join('')}</div>`}
+            : `<div id="choices2"${twoUp(q.kind)}>${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${c}</button>`).join('')}</div>`}
         <p class="dimtext center" id="answeredLine">${t('answered')(M.answeredCount, M.players.length)}</p>
       </div>`;
 
@@ -490,7 +490,10 @@ function renderLive() {
         <div class="eyebrow" style="margin-bottom:6px">${t('standings')}</div>
         ${board(true)}
       </div>
+      ${M.isHost ? `<button class="primary" id="skipReveal">${t('nextQ')}</button>` : ''}
       <p class="dimtext center">${t('qOf')(M.qIndex, M.rounds)}</p>`;
+    const sk = $('#skipReveal');
+    if (sk) sk.onclick = () => { clearTimeout(M.hostTimer); askLive(); };
     return;
   }
 

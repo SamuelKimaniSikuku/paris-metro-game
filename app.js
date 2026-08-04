@@ -319,6 +319,10 @@ function qNameStation() {
   };
 }
 
+/* line bullets and numbers are small enough to sit two-up; station names are not */
+const SHORT_CHOICES = ['landmark', 'station', 'terminus', 'colour', 'count'];
+const twoUp = kind => SHORT_CHOICES.includes(kind) ? ' class="twoup"' : '';
+
 const GENERATORS = [qLandmark, qStationLine, qCount, qTerminus, qOddOne, qInterchange, qColour];
 const TYPED_GENERATORS = GENERATORS.filter(g => g !== qOddOne).concat([qNameStation, qNameStation]);
 
@@ -456,6 +460,7 @@ function askQuestion() {
     $('#typedSubmit').disabled = false;
   } else {
     $('#typed').hidden = true;
+    $('#choices').className = SHORT_CHOICES.includes(G.q.kind) ? 'twoup' : '';
     $('#choices').innerHTML = G.q.choices.map((c, i) =>
       `<button class="choice" data-i="${i}">${c}</button>`).join('');
   }
@@ -526,7 +531,7 @@ function resolve(ok, timedOut) {
       .map(({ pl, idx }) => `<li${idx === G.turn ? ' class="me"' : ''}><span class="dot" style="background:${pl.color}"></span>${esc(pl.name)}<b>${pl.score}</b></li>`)
       .join('');
     show('result');
-  }, G.isTyped ? 250 : 900);
+  }, G.isTyped ? 180 : 550);
 }
 
 function advance() {
