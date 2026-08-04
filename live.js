@@ -29,6 +29,9 @@ Object.assign(T.en, {
   finalTitle: 'Final standings', playAgainLive: 'Play again, same room',
   lastAnswer: 'Last question', winsBy: (n, p) => `${n} wins by ${p} point${p === 1 ? '' : 's'}`,
   perfect: 'a clean sweep', dropped: n => `${n} left the room.`,
+  localTitle: 'This link only works on this computer',
+  localBody: 'You’re on a local copy of the game. Nobody else can open a localhost link. Host the room from the real site instead:',
+  localGo: 'Open the real site',
   noRoom: "No room with that code — check it and try again, or the host hasn't started one yet."
 });
 
@@ -58,11 +61,18 @@ Object.assign(T.fr, {
   finalTitle: 'Classement final', playAgainLive: 'Rejouer, même partie',
   lastAnswer: 'Dernière question', winsBy: (n, p) => `${n} gagne de ${p} point${p === 1 ? '' : 's'}`,
   perfect: 'un sans-faute', dropped: n => `${n} a quitté la partie.`,
+  localTitle: 'Ce lien ne marche que sur cet ordinateur',
+  localBody: 'Tu es sur une copie locale du jeu. Personne d’autre ne peut ouvrir un lien localhost. Crée plutôt la partie depuis le vrai site :',
+  localGo: 'Ouvrir le vrai site',
   noRoom: 'Aucune partie avec ce code — vérifie-le, ou l’hôte n’a pas encore créé la partie.'
 });
 
 const MAX_PLAYERS = 10;
 const REVEAL_MS = 6500;
+
+/* A room hosted from a dev copy hands out links nobody else can reach. */
+const IS_LOCAL = location.protocol === 'file:'
+  || ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname);
 
 const M = {
   net: null, code: '', isHost: false, me: { id: '', name: '' },
@@ -318,7 +328,11 @@ function renderLive() {
   if (M.phase === 'lobby' || M.phase === 'idle') {
     const url = location.origin + location.pathname + '?room=' + M.code;
     el.innerHTML = `${notice}
-      ${M.isHost ? `<div class="hostbanner">
+      ${IS_LOCAL ? `<div class="localwarn">
+        <strong>${t('localTitle')}</strong>
+        <span>${t('localBody')}</span>
+        <a class="gobtn" href="${esc(PUBLIC_URL)}">${t('localGo')}</a></div>` : ''}
+      ${M.isHost && !IS_LOCAL ? `<div class="hostbanner">
         <strong>${t('youHost')}</strong><span>${t('youHostSub')}</span></div>` : ''}
       <div class="card center">
         <div class="eyebrow">${t('lobbyCode')}</div>
