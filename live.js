@@ -9,7 +9,8 @@ Object.assign(T.en, {
   homeLive: 'Everyone on their own phone', homeLiveSub: 'Share a code, answer at the same time, race for the points.',
   create: 'Start a room', join: 'Join a room', joinCode: 'Room code', yourName: 'Your name',
   back: '← Back', joinGo: 'Join', connecting: 'Connecting…',
-  lobbyCode: 'Room code', lobbyShare: 'Share the link', lobbyCopied: 'Link copied',
+  lobbyCode: 'Room code', lobbyShare: 'Share…', lobbyCopied: 'Copied',
+  lobbyCopy: 'Copy link', lobbySelect: 'Select it and copy',
   lobbyWho: 'In the room', lobbyWait: 'Waiting for the host to start…',
   lobbyHint: 'Others open the same page, tap “Join a room”, and type this code.',
   startLive: 'Start the game', needTwo: 'You need at least 2 players.',
@@ -32,7 +33,8 @@ Object.assign(T.fr, {
   homeLive: 'Chacun sur son téléphone', homeLiveSub: 'On partage un code, on répond en même temps, au plus rapide.',
   create: 'Créer une partie', join: 'Rejoindre une partie', joinCode: 'Code de la partie', yourName: 'Ton prénom',
   back: '← Retour', joinGo: 'Rejoindre', connecting: 'Connexion…',
-  lobbyCode: 'Code de la partie', lobbyShare: 'Partager le lien', lobbyCopied: 'Lien copié',
+  lobbyCode: 'Code de la partie', lobbyShare: 'Partager…', lobbyCopied: 'Copié',
+  lobbyCopy: 'Copier le lien', lobbySelect: 'Sélectionne-le et copie-le',
   lobbyWho: 'Dans la partie', lobbyWait: 'On attend que l’hôte lance la partie…',
   lobbyHint: 'Les autres ouvrent la même page, appuient sur « Rejoindre une partie » et tapent ce code.',
   startLive: 'Lancer la partie', needTwo: 'Il faut au moins 2 joueurs.',
@@ -260,7 +262,11 @@ function renderLive() {
         <div class="eyebrow">${t('lobbyCode')}</div>
         <div class="code">${esc(M.code)}</div>
         <p class="dimtext">${esc(t('lobbyHint'))}</p>
-        <button id="shareBtn">${t('lobbyShare')}</button>
+        <input id="roomLink" type="text" readonly value="${esc(url)}">
+        <div class="lobbybtns">
+          <button id="copyBtn">${t('lobbyCopy')}</button>
+          ${navigator.share ? `<button id="shareBtn">${t('lobbyShare')}</button>` : ''}
+        </div>
       </div>
       <div class="card">
         <div class="eyebrow" style="margin-bottom:8px">${t('lobbyWho')} · ${M.players.length}</div>
@@ -286,11 +292,23 @@ function renderLive() {
            ${M.players.length < 2 ? `<p class="dimtext center">${t('needTwo')}</p>` : ''}`
         : `<p class="dimtext center">${t('lobbyWait')}</p>`}
       <p class="center" style="margin-top:16px"><button class="ghost" id="leaveBtn">${t('leave')}</button></p>`;
-    $('#shareBtn').onclick = async () => {
-      try {
-        if (navigator.share) await navigator.share({ title: 'Correspondance', url });
-        else { await navigator.clipboard.writeText(url); $('#shareBtn').textContent = t('lobbyCopied'); }
-      } catch (e) { /* dismissed */ }
+    /* selecting the field is the fallback that always works, even where the
+       clipboard API is blocked (insecure origin, permission denied, old browser) */
+    const linkField = $('#roomLink');
+    linkField.onclick = () => linkField.select();
+    $('#copyBtn').onclick = async () => {
+      const btn = $('#copyBtn');
+      linkField.select();
+      linkField.setSelectionRange(0, 999);
+      let done = false;
+      try { await navigator.clipboard.writeText(url); done = true; } catch (e) { /* fall through */ }
+      if (!done) { try { done = document.execCommand('copy'); } catch (e) { /* fall through */ } }
+      btn.textContent = done ? t('lobbyCopied') : t('lobbySelect');
+      setTimeout(() => { btn.textContent = t('lobbyCopy'); }, 2500);
+    };
+    const sh = $('#shareBtn');
+    if (sh) sh.onclick = async () => {
+      try { await navigator.share({ title: 'Correspondance', url }); } catch (e) { /* dismissed */ }
     };
     const s = $('#startLiveBtn'); if (s) s.onclick = startLive;
     $('#leaveBtn').onclick = leaveRoom;
