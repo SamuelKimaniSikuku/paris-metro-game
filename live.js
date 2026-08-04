@@ -14,6 +14,8 @@ Object.assign(T.en, {
   lobbyWho: 'In the room', lobbyWait: 'Waiting for the host to start…',
   lobbyHint: 'Others open the same page, tap “Join a room”, and type this code.',
   startLive: 'Start the game', needTwo: 'You need at least 2 players.',
+  youHost: 'You’re the host', youHostSub: 'Keep this page open — the room lives here. Start when everyone’s in.',
+  resumed: 'Back in your room.',
   qOf: (a, b) => `Question ${a} of ${b}`,
   answered: (a, b) => `${a} of ${b} answered`,
   waiting: 'Answer locked in. Waiting for the others…',
@@ -38,6 +40,8 @@ Object.assign(T.fr, {
   lobbyWho: 'Dans la partie', lobbyWait: 'On attend que l’hôte lance la partie…',
   lobbyHint: 'Les autres ouvrent la même page, appuient sur « Rejoindre une partie » et tapent ce code.',
   startLive: 'Lancer la partie', needTwo: 'Il faut au moins 2 joueurs.',
+  youHost: 'C’est toi l’hôte', youHostSub: 'Garde cette page ouverte — la partie vit ici. Lance quand tout le monde est là.',
+  resumed: 'De retour dans ta partie.',
   qOf: (a, b) => `Question ${a} sur ${b}`,
   answered: (a, b) => `${a} sur ${b} ont répondu`,
   waiting: 'Réponse enregistrée. On attend les autres…',
@@ -80,7 +84,12 @@ function connect(code, onOpen) {
   M.code = code;
   M.me.id = myId();
   M.net = joinRoom(code, {
-    onOpen: () => { M.notice = ''; onOpen && onOpen(); renderLive(); },
+    onOpen: () => {
+      /* clear only connection chatter — keep messages like "back in your room" */
+      if (M.notice === t('connecting') || M.notice === t('reconnecting')) M.notice = '';
+      onOpen && onOpen();
+      renderLive();
+    },
     onDrop: () => { M.notice = t('reconnecting'); renderLive(); },
     onUnreachable: () => { M.net = null; M.phase = 'unreachable'; renderLive(); },
     onMessage: handleMessage
@@ -92,6 +101,7 @@ function leaveRoom() {
   if (M.net) { M.net.send(M.isHost ? 'closed' : 'bye', { id: M.me.id }); M.net.close(); }
   clearInterval(M.tick); clearTimeout(M.hostTimer); clearInterval(M.beat); clearInterval(M.watch);
   M.net = null; M.phase = 'idle'; M.players = []; M.isHost = false;
+  forgetRoom();
   show('home');
 }
 
@@ -258,6 +268,8 @@ function renderLive() {
   if (M.phase === 'lobby' || M.phase === 'idle') {
     const url = location.origin + location.pathname + '?room=' + M.code;
     el.innerHTML = `${notice}
+      ${M.isHost ? `<div class="hostbanner">
+        <strong>${t('youHost')}</strong><span>${t('youHostSub')}</span></div>` : ''}
       <div class="card center">
         <div class="eyebrow">${t('lobbyCode')}</div>
         <div class="code">${esc(M.code)}</div>
@@ -273,23 +285,23 @@ function renderLive() {
         <ul class="lb">${M.players.map(p => `<li><span class="nm">${esc(p.name)}</span>
           <span class="det">${p.host ? t('hostBadge') : ''}${p.id === M.me.id ? (p.host ? ' · ' : '') + t('you') : ''}</span></li>`).join('')}</ul>
       </div>
-      ${M.isHost ? `<div class="card">
-        <div class="grid2" style="margin-top:0">
-          <div><label for="lvRounds">${t('liveRounds')}</label>
-            <select id="lvRounds">${[5, 8, 12, 20].map(v => `<option${v === 8 ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
-          <div><label for="lvSpeed">${t('lblSpeed')}</label>
-            <select id="lvSpeed">${[15, 25, 40, 60].map(v => `<option${v === 25 ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
-        </div>
-        <div class="stack"><label for="lvMode">${t('lblMode')}</label>
-          <select id="lvMode">
-            <option value="mc">${t('modeMc')}</option>
-            <option value="mixed" selected>${t('modeMixed')}</option>
-            <option value="typed">${t('modeTyped')}</option>
-          </select></div>
-      </div>` : ''}
       ${M.isHost
         ? `<button id="startLiveBtn" class="primary"${M.players.length < 2 ? ' disabled' : ''}>${t('startLive')}</button>
-           ${M.players.length < 2 ? `<p class="dimtext center">${t('needTwo')}</p>` : ''}`
+           ${M.players.length < 2 ? `<p class="dimtext center" style="margin:8px 0 0">${t('needTwo')}</p>` : ''}
+           <div class="card">
+             <div class="grid2" style="margin-top:0">
+               <div><label for="lvRounds">${t('liveRounds')}</label>
+                 <select id="lvRounds">${[5, 8, 12, 20].map(v => `<option${v === 8 ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+               <div><label for="lvSpeed">${t('lblSpeed')}</label>
+                 <select id="lvSpeed">${[15, 25, 40, 60].map(v => `<option${v === 25 ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+             </div>
+             <div class="stack"><label for="lvMode">${t('lblMode')}</label>
+               <select id="lvMode">
+                 <option value="mc">${t('modeMc')}</option>
+                 <option value="mixed" selected>${t('modeMixed')}</option>
+                 <option value="typed">${t('modeTyped')}</option>
+               </select></div>
+           </div>`
         : `<p class="dimtext center">${t('lobbyWait')}</p>`}
       <p class="center" style="margin-top:16px"><button class="ghost" id="leaveBtn">${t('leave')}</button></p>`;
     /* selecting the field is the fallback that always works, even where the
@@ -405,14 +417,27 @@ function renderLive() {
   el.innerHTML = `<div class="card center"><p class="dimtext">${notice || t('connecting')}</p></div>`;
 }
 
+/* ————— remembering the room across a reload ————— */
+function rememberRoom(code, name, host) {
+  try { sessionStorage.setItem('corr.room', JSON.stringify({ code, name, host })); } catch (e) { /* private mode */ }
+}
+function forgetRoom() {
+  try { sessionStorage.removeItem('corr.room'); } catch (e) { /* private mode */ }
+}
+function recallRoom() {
+  try { return JSON.parse(sessionStorage.getItem('corr.room') || 'null'); } catch (e) { return null; }
+}
+
 /* ————— entry points ————— */
-function hostRoom(name) {
+function hostRoom(name, code) {
   M.isHost = true;
   M.me.name = name;
   M.phase = 'lobby';
   M.players = [{ id: myId(), name, score: 0, correct: 0, host: true }];
   M.me.id = myId();
-  connect(makeCode(), () => broadcastSync());
+  code = code || makeCode();
+  rememberRoom(code, name, true);
+  connect(code, () => broadcastSync());
   clearInterval(M.beat);
   M.beat = setInterval(() => { if (M.isHost) broadcastSync(); }, 3000);
   show('live');
@@ -424,6 +449,7 @@ function joinAs(code, name) {
   M.me.name = name;
   M.phase = 'idle';
   M.notice = t('connecting');
+  rememberRoom(code, name, false);
   connect(code, () => M.net.send('hello', { id: M.me.id, name }));
   clearInterval(M.beat);
   M.beat = setInterval(() => { if (!M.isHost && M.net) M.net.send('hello', { id: M.me.id, name }); }, 4000);
@@ -489,4 +515,14 @@ if (roomParam && /^[A-Z0-9]{4}$/i.test(roomParam)) {
   $('#online').classList.add('invited');
   show('online');
   setTimeout(() => $('#myName').focus(), 50);
+} else {
+  /* a reload shouldn't kill the room — pick up where this device left off.
+     A host that reloads mid-game comes back in the lobby; players re-announce
+     themselves every few seconds, so the roster rebuilds on its own. */
+  const prev = recallRoom();
+  if (prev && prev.code) {
+    M.notice = t('resumed');
+    if (prev.host) hostRoom(prev.name, prev.code);
+    else joinAs(prev.code, prev.name);
+  }
 }
