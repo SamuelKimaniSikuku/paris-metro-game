@@ -59,7 +59,8 @@ const M = {
   rounds: 8, seconds: 25, mode: 'mixed',
   qIndex: 0, q: null, qid: 0, qView: null,
   endsAt: 0, answers: {}, results: null, answeredCount: 0,
-  myAnswer: null, tick: null, hostTimer: null, beat: null, notice: ''
+  myAnswer: null, tick: null, hostTimer: null, beat: null, watch: null,
+  lastSync: 0, notice: ''
 };
 
 function myId() {
@@ -85,8 +86,9 @@ function connect(code, onOpen) {
 }
 
 function leaveRoom() {
-  if (M.net) { M.net.send('bye', { id: M.me.id }); M.net.close(); }
-  clearInterval(M.tick); clearTimeout(M.hostTimer); clearInterval(M.beat);
+  /* a host walking out ends the room — say so, don't leave players hanging */
+  if (M.net) { M.net.send(M.isHost ? 'closed' : 'bye', { id: M.me.id }); M.net.close(); }
+  clearInterval(M.tick); clearTimeout(M.hostTimer); clearInterval(M.beat); clearInterval(M.watch);
   M.net = null; M.phase = 'idle'; M.players = []; M.isHost = false;
   show('home');
 }
@@ -132,6 +134,7 @@ function broadcastSync() {
 }
 
 function applySync(p) {
+  M.lastSync = Date.now();
   const wasQid = M.qView && M.qView.qid;
   M.phase = p.phase; M.players = p.players || []; M.qIndex = p.qIndex;
   M.rounds = p.rounds; M.seconds = p.seconds; M.answeredCount = p.answeredCount || 0;
@@ -406,6 +409,16 @@ function joinAs(code, name) {
   connect(code, () => M.net.send('hello', { id: M.me.id, name }));
   clearInterval(M.beat);
   M.beat = setInterval(() => { if (!M.isHost && M.net) M.net.send('hello', { id: M.me.id, name }); }, 4000);
+  /* the host broadcasts every 3s — a long silence means it went away without saying so */
+  M.lastSync = Date.now();
+  clearInterval(M.watch);
+  M.watch = setInterval(() => {
+    const playing = ['lobby', 'question', 'reveal'].includes(M.phase);
+    if (playing && Date.now() - M.lastSync > 14000) {
+      M.phase = 'lost'; M.notice = t('hostLeft');
+      clearInterval(M.watch); renderLive();
+    }
+  }, 2000);
   show('live');
   renderLive();
   setTimeout(() => {
