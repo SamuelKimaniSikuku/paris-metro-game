@@ -2,7 +2,7 @@
 
 A pass-the-phone guessing game about the Paris Métro, for 3–8 players. One screen, no server, no build step, no dependencies.
 
-**Play it:** https://samuelkimanisikuku.github.io/paris-metro-game/
+**Play it:** https://samuelkimanisikuku.com/paris-metro-game/
 
 ## How it plays
 
