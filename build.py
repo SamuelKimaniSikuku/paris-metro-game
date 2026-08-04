@@ -10,14 +10,19 @@ import pathlib
 import re
 
 root = pathlib.Path(__file__).parent
-html = (root / "index.html").read_text(encoding="utf-8")
-js = "\n".join((root / f).read_text(encoding="utf-8") for f in ("data.js", "app.js"))
+SCRIPTS = ("data.js", "config.js", "net.js", "app.js", "live.js")
 
-inlined = re.sub(
-    r'<script src="data\.js"></script>\s*<script src="app\.js"></script>',
+html = (root / "index.html").read_text(encoding="utf-8")
+js = "\n".join((root / f).read_text(encoding="utf-8") for f in SCRIPTS)
+
+pattern = r"\s*".join(r'<script src="%s"></script>' % re.escape(f) for f in SCRIPTS)
+inlined, n = re.subn(
+    pattern,
     lambda _: "<script>\n" + js + "\n</script>",  # lambda: js contains backslash escapes
     html,
 )
+if n != 1:
+    raise SystemExit(f"expected to inline one script block, matched {n} — did index.html change?")
 
 dist = root / "dist"
 dist.mkdir(exist_ok=True)

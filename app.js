@@ -348,6 +348,8 @@ function show(id) {
 }
 
 /* ————— language wiring ————— */
+const LANG_HOOKS = [];   /* live.js registers here so its screens retranslate too */
+
 function applyLang(lang) {
   LANG = lang;
   try { localStorage.setItem('corr.lang', lang); } catch (e) { /* private mode */ }
@@ -356,7 +358,9 @@ function applyLang(lang) {
     b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
 
   $('#eyebrowTitle').textContent = t('eyebrow');
+  $('#eyebrowTitle2').textContent = t('eyebrow');
   $('#lede').textContent = t('lede');
+  /* #lede2 belongs to the home screen — live.js owns those strings */
   $('#lblPlayers').textContent = t('lblPlayers');
   $('#pname').placeholder = t('namePh');
   $('#add').textContent = t('add');
@@ -368,6 +372,7 @@ function applyLang(lang) {
   $('#modeNote').textContent = t('modeNote')[$('#mode').value];
   $('#start').textContent = t('start');
   $('#foot').innerHTML = t('foot');
+  $('#foot2').innerHTML = t('foot');
   $('#passEyebrow').textContent = t('passTo');
   $('#ready').textContent = t('imReady');
   $('#typedSubmit').textContent = t('submit');
@@ -382,6 +387,7 @@ function applyLang(lang) {
   document.querySelectorAll('[data-sheet]').forEach(b => b.textContent = t('cheat'));
   buildSheet();
   renderPlayers();
+  LANG_HOOKS.forEach(fn => fn());
 }
 
 /* ————— setup ————— */
