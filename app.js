@@ -390,6 +390,7 @@ function applyLang(lang) {
   $('#closeSheet').textContent = t('close');
   document.querySelectorAll('[data-sheet]').forEach(b => b.textContent = t('cheat'));
   buildSheet();
+  buildStrip();
   renderPlayers();
   LANG_HOOKS.forEach(fn => fn());
 }
@@ -428,8 +429,9 @@ function startGame() {
 
 function passScreen() {
   const p = G.players[G.turn];
+  /* the player's colour reads as a chip — tinting the text itself fails on white */
   $('#passName').textContent = p.name;
-  $('#passName').style.color = p.color;
+  $('#passChip').style.background = p.color;
   $('#passMeta').textContent = `${t('roundOf')(G.round + 1, G.rounds)} · ${t('pts')(p.score)}`;
   show('pass');
 }
@@ -440,8 +442,7 @@ function askQuestion() {
   G.locked = false;
   G.left = G.seconds;
 
-  $('#qWho').textContent = p.name;
-  $('#qWho').style.color = p.color;
+  $('#qWho').innerHTML = `<span class="dot" style="background:${p.color}"></span>${esc(p.name)}`;
   $('#qKind').textContent = t('kinds')[G.q.kind];
   $('#qMode').textContent = G.isTyped ? t('tagTyped') : t('tagMc');
   $('#qRound').textContent = t('roundShort')(G.round + 1, G.rounds);
@@ -556,6 +557,12 @@ function finish() {
 }
 
 /* ————— cheat sheet ————— */
+/* the network's own palette, in line order, as the page's signature rule */
+function buildStrip() {
+  const el = $('#strip');
+  if (el) el.innerHTML = LINE_IDS.map(id => `<i style="background:${LINES[id].color}"></i>`).join('');
+}
+
 function buildSheet() {
   $('#sheet').innerHTML = LINE_IDS.map(id =>
     `<div class="row">${bullet(id, 'big')}

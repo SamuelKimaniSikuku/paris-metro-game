@@ -1,27 +1,39 @@
 <title>Correspondance — the Paris Métro guessing game</title>
 <style>
+  /* Light is the default here: a signage-white page, navy ink, one hot accent. */
   :root{
-    --bg:#0e1116; --card:#171b22; --card2:#1e232c; --line:#2b313c;
-    --ink:#eef1f6; --dim:#98a2b3; --good:#3fb950; --bad:#f85149;
-    --accent:#FFCE00;
+    --bg:#eef1f6; --card:#ffffff; --card2:#f3f6fa; --line:#dde3ec;
+    --ink:#0b1524; --dim:#5b6678; --good:#0f7a37; --bad:#c62828;
+    --accent:#e32017; --onAccent:#ffffff;
+    --fill:#0b1524; --onFill:#ffffff;
   }
-  @media (prefers-color-scheme: light){
-    :root{ --bg:#f4f5f7; --card:#fff; --card2:#f7f8fa; --line:#e2e5ea;
-           --ink:#12151a; --dim:#5b6472; --good:#1a7f37; --bad:#c8352b; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0b1017; --card:#151c26; --card2:#1c2430; --line:#2a3441;
+           --ink:#eef2f8; --dim:#93a1b4; --good:#3fb950; --bad:#f2564a;
+           --accent:#ff4a3d; --onAccent:#ffffff;
+           --fill:#212c3b; --onFill:#ffffff; }
   }
   /* the viewer's own theme toggle must beat the OS preference, both ways */
-  :root[data-theme=light]{ --bg:#f4f5f7; --card:#fff; --card2:#f7f8fa; --line:#e2e5ea;
-    --ink:#12151a; --dim:#5b6472; --good:#1a7f37; --bad:#c8352b; }
-  :root[data-theme=dark]{ --bg:#0e1116; --card:#171b22; --card2:#1e232c; --line:#2b313c;
-    --ink:#eef1f6; --dim:#98a2b3; --good:#3fb950; --bad:#f85149; }
+  :root[data-theme=light]{ --bg:#eef1f6; --card:#ffffff; --card2:#f3f6fa; --line:#dde3ec;
+    --ink:#0b1524; --dim:#5b6678; --good:#0f7a37; --bad:#c62828;
+    --accent:#e32017; --onAccent:#ffffff; --fill:#0b1524; --onFill:#ffffff; }
+  :root[data-theme=dark]{ --bg:#0b1017; --card:#151c26; --card2:#1c2430; --line:#2a3441;
+    --ink:#eef2f8; --dim:#93a1b4; --good:#3fb950; --bad:#f2564a;
+    --accent:#ff4a3d; --onAccent:#ffffff; --fill:#212c3b; --onFill:#ffffff; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
   .wrap{max-width:640px;margin:0 auto;padding:20px 16px 48px}
-  h1{font-size:clamp(28px,7vw,40px);margin:0;letter-spacing:-.02em;font-weight:800}
-  h1 small{display:block;font-size:14px;font-weight:600;color:var(--dim);letter-spacing:.06em;
-    text-transform:uppercase;margin-bottom:6px}
+  /* Display type: heavy, uppercase, tightly tracked — station-sign voice.
+     font-stretch narrows it where the platform's UI font is variable. */
+  h1{font-size:clamp(30px,9vw,46px);margin:0;font-weight:900;line-height:1;
+    text-transform:uppercase;letter-spacing:.01em;font-stretch:condensed;text-wrap:balance}
+  h1 small{display:block;font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.18em;
+    text-transform:uppercase;margin-bottom:8px;font-stretch:normal}
+  /* the 16 lines, in order, as a signature rule — drawn from the real palette */
+  .linestrip{display:flex;height:7px;border-radius:4px;overflow:hidden;margin:18px 0 4px}
+  .linestrip i{flex:1}
   .screen{display:none} .screen.on{display:block;animation:in .25s ease}
   @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion: reduce){
@@ -52,16 +64,20 @@
   button:active{transform:scale(.985)}
   /* 16px is the threshold below which iOS zooms the page on focus */
   input[type=text]{font-size:16px;min-height:46px}
-  .primary{background:var(--accent);color:#000;border-color:transparent;width:100%;padding:16px;font-size:17px}
-  .primary:disabled{opacity:.35;cursor:not-allowed}
-  .ghost{background:transparent;color:var(--dim)}
+  .primary{background:var(--accent);color:var(--onAccent);border-color:transparent;width:100%;
+    padding:17px;font-size:15px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;
+    border-radius:13px}
+  .primary:disabled{opacity:.32;cursor:not-allowed}
+  .ghost{background:transparent;color:var(--dim);border-color:transparent;text-decoration:underline;
+    text-underline-offset:3px}
 
   /* language toggle */
   .topbar{display:flex;justify-content:flex-end;margin-bottom:10px}
   .langs{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
   .langs button{border:0;border-radius:0;background:transparent;color:var(--dim);
     padding:7px 14px;font-size:13px;letter-spacing:.05em}
-  .langs button[aria-pressed=true]{background:var(--accent);color:#000}
+  .langs button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+  .langs button{min-height:34px}
 
   ul{list-style:none;margin:0;padding:0}
   #players li{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line);font-weight:600}
@@ -76,7 +92,8 @@
   .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700}
 
   .qhead{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim);font-weight:600;flex-wrap:wrap}
-  .qhead b{font-weight:800}
+  .qhead b{font-weight:800;color:var(--ink);display:inline-flex;align-items:center;gap:7px}
+  .passchip{display:block;width:44px;height:6px;border-radius:3px;margin:14px auto 0}
   #clock{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink)}
   .tag{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11px;
     letter-spacing:.08em;text-transform:uppercase}
@@ -156,10 +173,18 @@
   }
 
   /* home + live rooms */
-  .choices2{display:grid;gap:12px;margin-top:22px}
-  .bigopt{display:block;text-align:left;padding:20px;background:var(--card);border-radius:16px}
-  .bigopt .opt{display:block;font-size:19px;font-weight:800;letter-spacing:-.01em}
-  .bigopt .optsub{display:block;color:var(--dim);font-weight:500;font-size:14px;margin-top:4px}
+  /* The two ways to play, as the page's main event: one filled, one outlined,
+     each with a coloured rail down its left edge. */
+  .choices2{display:grid;gap:12px;margin-top:20px}
+  .bigopt{display:block;text-align:left;padding:19px 20px;background:var(--card);
+    border:1px solid var(--line);border-radius:16px;border-left:7px solid var(--accent)}
+  .bigopt .opt{display:block;font-size:19px;font-weight:900;text-transform:uppercase;
+    letter-spacing:.02em;font-stretch:condensed}
+  .bigopt .optsub{display:block;color:var(--dim);font-weight:500;font-size:14px;margin-top:5px;
+    text-transform:none;letter-spacing:0}
+  #homeSolo{background:var(--fill);color:var(--onFill);border-color:transparent;
+    border-left:7px solid #FFCE00}
+  #homeSolo .optsub{color:rgba(255,255,255,.66)}
   .orline{text-align:center;color:var(--dim);margin:6px 0}
   #onlineFlow{display:flex;flex-direction:column}
   #createBlock{order:1} #joinBlock{order:2}
@@ -228,6 +253,7 @@
   <section id="home" class="screen on">
     <h1><small id="eyebrowTitle2">Le jeu du métro</small>Correspondance</h1>
     <p class="lede" id="lede2"></p>
+    <div class="linestrip" id="strip"></div>
     <div class="choices2">
       <button id="homeSolo" class="bigopt"></button>
       <button id="homeLive" class="bigopt"></button>
@@ -310,6 +336,7 @@
   <section id="pass" class="screen">
     <div class="card">
       <div class="eyebrow" id="passEyebrow"></div>
+      <span id="passChip" class="passchip"></span>
       <div id="passName">—</div>
       <div id="passMeta"></div>
       <button id="ready" class="primary"></button>
@@ -1094,6 +1121,7 @@ function applyLang(lang) {
   $('#closeSheet').textContent = t('close');
   document.querySelectorAll('[data-sheet]').forEach(b => b.textContent = t('cheat'));
   buildSheet();
+  buildStrip();
   renderPlayers();
   LANG_HOOKS.forEach(fn => fn());
 }
@@ -1132,8 +1160,9 @@ function startGame() {
 
 function passScreen() {
   const p = G.players[G.turn];
+  /* the player's colour reads as a chip — tinting the text itself fails on white */
   $('#passName').textContent = p.name;
-  $('#passName').style.color = p.color;
+  $('#passChip').style.background = p.color;
   $('#passMeta').textContent = `${t('roundOf')(G.round + 1, G.rounds)} · ${t('pts')(p.score)}`;
   show('pass');
 }
@@ -1144,8 +1173,7 @@ function askQuestion() {
   G.locked = false;
   G.left = G.seconds;
 
-  $('#qWho').textContent = p.name;
-  $('#qWho').style.color = p.color;
+  $('#qWho').innerHTML = `<span class="dot" style="background:${p.color}"></span>${esc(p.name)}`;
   $('#qKind').textContent = t('kinds')[G.q.kind];
   $('#qMode').textContent = G.isTyped ? t('tagTyped') : t('tagMc');
   $('#qRound').textContent = t('roundShort')(G.round + 1, G.rounds);
@@ -1260,6 +1288,12 @@ function finish() {
 }
 
 /* ————— cheat sheet ————— */
+/* the network's own palette, in line order, as the page's signature rule */
+function buildStrip() {
+  const el = $('#strip');
+  if (el) el.innerHTML = LINE_IDS.map(id => `<i style="background:${LINES[id].color}"></i>`).join('');
+}
+
 function buildSheet() {
   $('#sheet').innerHTML = LINE_IDS.map(id =>
     `<div class="row">${bullet(id, 'big')}
