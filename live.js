@@ -322,7 +322,23 @@ function board(highlightMe) {
 function renderLive() {
   const el = $('#liveBody');
   if (!el) return;
+
+  /* The host syncs every 3s. Re-rendering the card on each one would replace
+     the answer box mid-word — wiping what you typed and closing the keyboard.
+     While the same question is still up, patch the one line that changes. */
+  if (M.phase === 'question' && M.qView
+      && el.dataset.qid === String(M.qView.qid)
+      && el.dataset.locked === String(M.myAnswer !== null)) {
+    const line = el.querySelector('#answeredLine');
+    if (line) line.textContent = t('answered')(M.answeredCount, M.players.length);
+    const note = el.querySelector('.notice');
+    if (note) note.textContent = M.notice;
+    return;
+  }
+
   clearInterval(M.tick);
+  el.dataset.qid = '';
+  el.dataset.locked = '';
   const notice = M.notice ? `<p class="notice">${esc(M.notice)}</p>` : '';
 
   if (M.phase === 'lobby' || M.phase === 'idle') {
@@ -419,6 +435,8 @@ function renderLive() {
     };
     paint();
     M.tick = setInterval(paint, 100);
+    el.dataset.qid = String(q.qid);
+    el.dataset.locked = String(done);
 
     if (!done) {
       if (q.isTyped) {
@@ -600,7 +618,11 @@ function liveLangRefresh() {
   $('#joinBtn').textContent = t('joinGo');
   $('#onlineBack').textContent = t('back');
   $('#homeBackFromSetup').textContent = t('back');
-  if (M.net) renderLive();
+  if (M.net) {
+    const el = $('#liveBody');
+    if (el) el.dataset.qid = '';   /* a language change must redraw everything */
+    renderLive();
+  }
 }
 LANG_HOOKS.push(liveLangRefresh);
 liveLangRefresh();   /* app.js already ran applyLang before this file loaded */
