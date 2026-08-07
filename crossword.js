@@ -28,12 +28,22 @@ Object.assign(T.fr, {
   crossAllRight: 'Tout ce qui est rempli est juste — continue.',
   crossEmpty: 'Rien de rempli pour l’instant.',
   crossHint: 'Les accents et les traits d’union sautent : Châtelet devient CHATELET.',
-  clueLandmark: p => `La station la plus proche de ${p}`,
+  clueLandmark: p => `La station la plus proche ${deFr(p)}`,
   clueTerminus: l => `Terminus de la ligne ${l}`,
   clueHub: (a, b) => `Correspondance entre les lignes ${a} et ${b}`,
   clueLine: (l, e) => `Une station de la ligne ${l} — ${e}`,
   clueLetters: n => `(${n})`
 });
+
+/* "de" + "le Moulin Rouge" is "du Moulin Rouge", not "de le Moulin Rouge".
+   The landmark names carry their own article, so contract before joining. */
+function deFr(name) {
+  if (/^les /i.test(name)) return 'des ' + name.slice(4);
+  if (/^le /i.test(name)) return 'du ' + name.slice(3);
+  if (/^la /i.test(name)) return 'de la ' + name.slice(3);
+  if (/^l['’]/i.test(name)) return 'de ' + name;
+  return 'de ' + name;
+}
 
 /* ————— the answer pool ————— */
 const plain = s => strip(s).toUpperCase().replace(/[^A-Z]/g, '');
