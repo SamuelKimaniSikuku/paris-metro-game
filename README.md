@@ -10,7 +10,7 @@ A pass-the-phone guessing game about the Paris Métro, for 3–8 players. One sc
 
 **Everyone on their own phone.** The host starts a room and gets a 4-letter code and a shareable link. Everyone else opens the same page, taps *Join a room* and types the code — or just follows the link, which fills the code in for them. Then every player sees the same question at the same moment on their own screen, answers race in, and the leaderboard updates between questions. Up to 10 players.
 
-**Crossword.** A generated grid whose answers are station names, clued from the same data — "Closest station to the Musée d'Orsay (9)", "Change here between lines 4 and 10 (5)", "Terminus of line 8 (6)". Tap a square or a clue, type, and check your work. A new grid every time, so it never runs out.
+**Crossword.** Pick **Mini** (five clues, short answers, a couple of minutes) or the **Full grid** (eight clues, longer names). Answers are station names, clued from the same data — "Closest station to the Musée d'Orsay (9)", "Change here between lines 4 and 10 (5)", "Terminus of line 8 (6)". Tap a square or a clue, type, and check your work. **Hint** fills one letter of the word you're on. A new grid every time, so it never runs out.
 
 Highest score at the terminus wins.
 
@@ -51,7 +51,9 @@ Consequences worth knowing:
 
 ## How the crossword is built
 
-`crossword.js` generates a fresh grid on every visit rather than shipping stored puzzles. It seeds a word across the middle, then repeatedly tries to place another station crossing an existing letter, rejecting any position that would butt two words together or create an accidental two-letter word sideways. It builds ~25 candidate grids and keeps the most compact one, because a 15-wide grid leaves unplayably small squares on a phone.
+`crossword.js` generates a fresh grid on every visit rather than shipping stored puzzles. It seeds a word across the middle, then repeatedly tries to place another station crossing an existing letter, rejecting any position that would butt two words together or create an accidental two-letter word sideways. It builds a batch of candidate grids and keeps the most compact one, because a 15-wide grid leaves unplayably small squares on a phone.
+
+There is no dense 5×5 mini, and there cannot be: the network has three single-word stations of four letters and twelve of five. The mini is a small open grid of five short answers instead.
 
 Answers are single-word stations only, stripped to A–Z — `Châtelet` becomes `CHATELET`. Clues are ranked: landmark, then terminus, then interchange. Stations with none of those make for guess-work clues, so they're used at most twice per grid and in practice never appear.
 

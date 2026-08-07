@@ -8,6 +8,9 @@ Object.assign(T.en, {
   crossTitle: 'Mots croisés', crossAcross: 'Across', crossDown: 'Down',
   crossCheck: 'Check', crossReveal: 'Reveal answer', crossNew: 'New grid',
   crossHintBtn: 'Hint', crossHintFull: 'That word is already filled in.',
+  crossMini: 'Mini', crossFull: 'Full grid',
+  crossMiniNote: 'Five clues, short answers. A couple of minutes.',
+  crossFullNote: 'Eight clues and longer names. A proper sit-down.',
   hintsUsed: n => n === 1 ? '1 hint used' : `${n} hints used`,
   crossDone: 'Solved. Every station in place.',
   crossDoneHints: n => `Solved, with ${n === 1 ? '1 hint' : n + ' hints'}.`,
@@ -27,6 +30,9 @@ Object.assign(T.fr, {
   crossTitle: 'Mots croisés', crossAcross: 'Horizontalement', crossDown: 'Verticalement',
   crossCheck: 'Vérifier', crossReveal: 'Voir la réponse', crossNew: 'Nouvelle grille',
   crossHintBtn: 'Indice', crossHintFull: 'Ce mot est déjà complet.',
+  crossMini: 'Mini', crossFull: 'Grille complète',
+  crossMiniNote: 'Cinq définitions, réponses courtes. Deux minutes.',
+  crossFullNote: 'Huit définitions et des noms plus longs. On s’installe.',
   hintsUsed: n => n === 1 ? '1 indice utilisé' : `${n} indices utilisés`,
   crossDone: 'Résolu. Toutes les stations à leur place.',
   crossDoneHints: n => `Résolu, avec ${n === 1 ? '1 indice' : n + ' indices'}.`,
@@ -85,7 +91,14 @@ function clueFor(name) {
 /* strong clues first, and only a couple of weak ones per grid */
 const STRONG = CROSS_POOL.filter(w => clueKind(w.name) !== 'plain');
 const PLAIN = CROSS_POOL.filter(w => clueKind(w.name) === 'plain');
-const MAX_PLAIN = 2;
+
+/* A dense 5x5 is impossible here: the network has three four-letter and
+   twelve five-letter single-word stations. The mini is a small open grid
+   with short answers instead — same idea, honest about the vocabulary. */
+const SHAPES = {
+  mini: { target: 5, maxLen: 7, span: 8, maxPlain: 1, tries: 40 },
+  full: { target: 8, maxLen: 10, span: 12, maxPlain: 2, tries: 25 }
+};
 
 /* ————— generation ————— */
 const SIZE = 15;
@@ -130,22 +143,23 @@ function put(grid, letters, r, c, dir) {
   for (let i = 0; i < letters.length; i++) grid[r + dr * i][c + dc * i] = letters[i];
 }
 
-function generatePuzzle(target = 9) {
+function generatePuzzle(shape) {
+  const fit = w => w.letters.length <= shape.maxLen;
   const grid = blankGrid();
   const entries = [];
-  const pool = shuffle(STRONG).concat(shuffle(PLAIN));
+  const pool = shuffle(STRONG.filter(fit)).concat(shuffle(PLAIN.filter(fit)));
   let plainUsed = 0;
 
-  const seed = shuffle(STRONG).find(w => w.letters.length >= 6 && w.letters.length <= 9) || pool[0];
+  const seed = shuffle(STRONG.filter(fit)).find(w => w.letters.length >= 5) || pool[0];
   const r0 = Math.floor(SIZE / 2), c0 = Math.floor((SIZE - seed.letters.length) / 2);
   put(grid, seed.letters, r0, c0, 'A');
   entries.push({ ...seed, r: r0, c: c0, dir: 'A' });
 
   for (const w of pool) {
-    if (entries.length >= target) break;
+    if (entries.length >= shape.target) break;
     if (entries.some(e => e.name === w.name)) continue;
     const weak = clueKind(w.name) === 'plain';
-    if (weak && plainUsed >= MAX_PLAIN) continue;
+    if (weak && plainUsed >= shape.maxPlain) continue;
 
     const spots = [];
     for (const e of entries) {
@@ -166,7 +180,7 @@ function generatePuzzle(target = 9) {
     entries.push({ ...w, r: s.r, c: s.c, dir: s.dir });
     if (weak) plainUsed++;
   }
-  return entries.length >= 5 ? { grid, entries } : null;
+  return entries.length >= Math.min(4, shape.target) ? { grid, entries } : null;
 }
 
 /* crop to the used area and number the starting squares */
@@ -199,25 +213,26 @@ function layout(puz) {
 
 /* ————— state ————— */
 const X = { rows: 0, cols: 0, solution: [], entries: [], numAt: {}, letters: {},
-  active: null, cell: null, given: {}, hints: 0 };
+  active: null, cell: null, given: {}, hints: 0, mode: 'mini' };
 
 /* Generation is cheap, so make several and keep the tightest — a 15-wide grid
    leaves ~17px squares on a small phone, which is unplayable. */
 function newPuzzle() {
+  const shape = SHAPES[X.mode] || SHAPES.full;
   let best = null;
-  for (let i = 0; i < 25; i++) {
-    const puz = generatePuzzle(8);
+  for (let i = 0; i < shape.tries; i++) {
+    const puz = generatePuzzle(shape);
     if (!puz) continue;
     const L = layout(puz);
     const span = Math.max(L.rows, L.cols);
-    if (span > 12) continue;
+    if (span > shape.span) continue;
     if (!best || span < best.span || (span === best.span && L.entries.length > best.L.entries.length)) {
       best = { L, span };
     }
   }
   if (!best) {                       /* nothing compact turned up — take any */
     let puz = null;
-    for (let i = 0; i < 40 && !puz; i++) puz = generatePuzzle(7);
+    for (let i = 0; i < 40 && !puz; i++) puz = generatePuzzle(shape);
     if (!puz) return;
     best = { L: layout(puz) };
   }
@@ -365,6 +380,9 @@ function crossLangRefresh() {
   $('#homeCross').innerHTML = `<span class="opt">${t('homeCross')}</span><span class="optsub">${t('homeCrossSub')}</span>`;
   $('#crossTitle').textContent = t('crossTitle');
   $('#crossHint').textContent = t('crossHint');
+  $('#crossMiniBtn').textContent = t('crossMini');
+  $('#crossFullBtn').textContent = t('crossFull');
+  $('#crossShapeNote').textContent = X.mode === 'mini' ? t('crossMiniNote') : t('crossFullNote');
   $('#crossHintBtn').textContent = t('crossHintBtn');
   $('#crossCheckBtn').textContent = t('crossCheck');
   $('#crossRevealBtn').textContent = t('crossReveal');
@@ -378,6 +396,17 @@ crossLangRefresh();
 $('#homeCross').onclick = () => { show('cross'); if (!X.rows) newPuzzle(); else renderCross(); };
 $('#crossBack').onclick = () => show('home');
 $('#crossNewBtn').onclick = () => { X.marks = {}; $('#crossMsg').textContent = ''; $('#crossMsg').className = 'crossmsg'; newPuzzle(); };
+function setMode(mode) {
+  X.mode = mode;
+  document.querySelectorAll('.shapes button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  $('#crossShapeNote').textContent = mode === 'mini' ? t('crossMiniNote') : t('crossFullNote');
+  $('#crossMsg').textContent = '';
+  $('#crossMsg').className = 'crossmsg';
+  newPuzzle();
+}
+document.querySelectorAll('.shapes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
 $('#crossHintBtn').onclick = giveHint;
 $('#crossCheckBtn').onclick = checkGrid;
 $('#crossRevealBtn').onclick = revealActive;

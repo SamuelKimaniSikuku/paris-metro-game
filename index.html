@@ -172,6 +172,11 @@
   /* offscreen, but focusable — this is what opens the phone keyboard */
   #crossInput{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;min-height:0}
   .curclue{text-align:center;font-weight:700;margin:4px 0 14px;min-height:1.5em}
+  .shapes{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;overflow:hidden;
+    margin:16px auto 8px;width:fit-content;background:var(--card)}
+  .shapes button{border:0;border-radius:0;background:transparent;color:var(--dim);
+    padding:9px 20px;font-size:14px;min-height:42px}
+  .shapes button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
   .crossbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   @media(min-width:520px){.crossbtns{grid-template-columns:repeat(4,1fr)}}
   .crossbtns button{font-size:13px;padding:12px 6px}
@@ -331,6 +336,11 @@
     <p><button class="ghost" id="crossBack"></button></p>
     <h1><small id="crossEyebrow">Le jeu du métro</small><span id="crossTitle"></span></h1>
     <p class="lede" id="crossHint"></p>
+    <div class="shapes" role="group">
+      <button data-mode="mini" id="crossMiniBtn" aria-pressed="true"></button>
+      <button data-mode="full" id="crossFullBtn" aria-pressed="false"></button>
+    </div>
+    <p class="dimtext center" id="crossShapeNote"></p>
     <p class="crossmsg" id="crossMsg"></p>
     <div class="gridwrap"><div id="crossGrid"></div></div>
     <input id="crossInput" type="text" autocomplete="off" autocorrect="off"
