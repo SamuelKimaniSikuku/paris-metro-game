@@ -4,11 +4,13 @@ A pass-the-phone guessing game about the Paris Métro, for 3–8 players. One sc
 
 **Play it:** https://quiz-metro.com
 
-## Two ways to play
+## Three ways to play
 
 **One phone, passed around.** Add players, pick the length and the clock, then pass the phone. Each player gets their own question and the screen shows what was right along with the running standings. Works with no internet at all — useful when you're actually underground.
 
 **Everyone on their own phone.** The host starts a room and gets a 4-letter code and a shareable link. Everyone else opens the same page, taps *Join a room* and types the code — or just follows the link, which fills the code in for them. Then every player sees the same question at the same moment on their own screen, answers race in, and the leaderboard updates between questions. Up to 10 players.
+
+**Crossword.** A generated grid whose answers are station names, clued from the same data — "Closest station to the Musée d'Orsay (9)", "Change here between lines 4 and 10 (5)", "Terminus of line 8 (6)". Tap a square or a clue, type, and check your work. A new grid every time, so it never runs out.
 
 Highest score at the terminus wins.
 
@@ -46,6 +48,12 @@ Consequences worth knowing:
 - **The host holds the game.** If the host closes the tab, the room ends and everyone is told so. Players who drop can rejoin with the same code and pick up the current question.
 - **Scoring trusts the client's stopwatch.** Each phone reports how long it took, clamped to the question's time limit. Fine among friends; not something to bet on.
 - **A page that blocks outbound WebSockets** (a strict CSP, a captive network) falls back gracefully: the room screen explains the situation and offers the pass-the-phone game instead.
+
+## How the crossword is built
+
+`crossword.js` generates a fresh grid on every visit rather than shipping stored puzzles. It seeds a word across the middle, then repeatedly tries to place another station crossing an existing letter, rejecting any position that would butt two words together or create an accidental two-letter word sideways. It builds ~25 candidate grids and keeps the most compact one, because a 15-wide grid leaves unplayably small squares on a phone.
+
+Answers are single-word stations only, stripped to A–Z — `Châtelet` becomes `CHATELET`. Clues are ranked: landmark, then terminus, then interchange. Stations with none of those make for guess-work clues, so they're used at most twice per grid and in practice never appear.
 
 ## The data
 

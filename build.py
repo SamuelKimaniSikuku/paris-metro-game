@@ -10,7 +10,7 @@ import pathlib
 import re
 
 root = pathlib.Path(__file__).parent
-SCRIPTS = ("data.js", "config.js", "net.js", "app.js", "live.js")
+SCRIPTS = ("data.js", "config.js", "net.js", "app.js", "live.js", "crossword.js")
 
 html = (root / "index.html").read_text(encoding="utf-8")
 js = "\n".join((root / f).read_text(encoding="utf-8") for f in SCRIPTS)
