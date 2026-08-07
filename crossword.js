@@ -7,7 +7,10 @@ Object.assign(T.en, {
   homeCross: 'Crossword', homeCrossSub: 'Fill in station names from their clues. Alone or over someone’s shoulder.',
   crossTitle: 'Mots croisés', crossAcross: 'Across', crossDown: 'Down',
   crossCheck: 'Check', crossReveal: 'Reveal answer', crossNew: 'New grid',
+  crossHintBtn: 'Hint', crossHintFull: 'That word is already filled in.',
+  hintsUsed: n => n === 1 ? '1 hint used' : `${n} hints used`,
   crossDone: 'Solved. Every station in place.',
+  crossDoneHints: n => `Solved, with ${n === 1 ? '1 hint' : n + ' hints'}.`,
   crossWrong: n => `${n} letter${n === 1 ? '' : 's'} wrong.`,
   crossAllRight: 'Everything you’ve filled in is right — keep going.',
   crossEmpty: 'Nothing filled in yet.',
@@ -23,7 +26,10 @@ Object.assign(T.fr, {
   homeCross: 'Mots croisés', homeCrossSub: 'Retrouve les stations à partir des définitions. Seul ou à plusieurs.',
   crossTitle: 'Mots croisés', crossAcross: 'Horizontalement', crossDown: 'Verticalement',
   crossCheck: 'Vérifier', crossReveal: 'Voir la réponse', crossNew: 'Nouvelle grille',
+  crossHintBtn: 'Indice', crossHintFull: 'Ce mot est déjà complet.',
+  hintsUsed: n => n === 1 ? '1 indice utilisé' : `${n} indices utilisés`,
   crossDone: 'Résolu. Toutes les stations à leur place.',
+  crossDoneHints: n => `Résolu, avec ${n === 1 ? '1 indice' : n + ' indices'}.`,
   crossWrong: n => `${n} lettre${n === 1 ? '' : 's'} fausse${n === 1 ? '' : 's'}.`,
   crossAllRight: 'Tout ce qui est rempli est juste — continue.',
   crossEmpty: 'Rien de rempli pour l’instant.',
@@ -192,7 +198,8 @@ function layout(puz) {
 }
 
 /* ————— state ————— */
-const X = { rows: 0, cols: 0, solution: [], entries: [], numAt: {}, letters: {}, active: null, cell: null };
+const X = { rows: 0, cols: 0, solution: [], entries: [], numAt: {}, letters: {},
+  active: null, cell: null, given: {}, hints: 0 };
 
 /* Generation is cheap, so make several and keep the tightest — a 15-wide grid
    leaves ~17px squares on a small phone, which is unplayable. */
@@ -214,7 +221,7 @@ function newPuzzle() {
     if (!puz) return;
     best = { L: layout(puz) };
   }
-  Object.assign(X, best.L, { letters: {}, active: null, cell: null });
+  Object.assign(X, best.L, { letters: {}, active: null, cell: null, given: {}, hints: 0 });
   X.active = X.entries[0];
   X.cell = { ...X.active.cells[0] };
   renderCross();
@@ -262,6 +269,28 @@ function backspace() {
   renderCross();
 }
 
+/* ————— hints —————
+   One letter at a time in the word you're on: the first gap, or the first
+   letter you've got wrong. Given letters stay marked so you can see what you
+   were handed rather than worked out. */
+function giveHint() {
+  if (!X.active) return;
+  const cells = X.active.cells;
+  let target = cells.findIndex((p, i) => !X.letters[key(p.r, p.c)]);
+  if (target < 0) target = cells.findIndex((p, i) => X.letters[key(p.r, p.c)] !== X.active.letters[i]);
+  if (target < 0) { $('#crossMsg').textContent = t('crossHintFull'); $('#crossMsg').className = 'crossmsg'; return; }
+
+  const p = cells[target];
+  X.letters[key(p.r, p.c)] = X.active.letters[target];
+  X.given[key(p.r, p.c)] = true;
+  X.hints++;
+  X.marks = {};
+  X.cell = { ...(cells[target + 1] || p) };
+  $('#crossMsg').textContent = t('hintsUsed')(X.hints);
+  $('#crossMsg').className = 'crossmsg';
+  renderCross();
+}
+
 /* ————— rendering ————— */
 function renderCross() {
   const g = $('#crossGrid');
@@ -279,6 +308,7 @@ function renderCross() {
       if (activeCells.has(k)) cls.push('inword');
       if (X.cell && X.cell.r === r && X.cell.c === c) cls.push('here');
       if (X.marks && X.marks[k]) cls.push(X.marks[k]);
+      if (X.given[k]) cls.push('given');
       html += `<div class="${cls.join(' ')}" data-r="${r}" data-c="${c}">${
         num ? `<b>${num}</b>` : ''}${X.letters[k] || ''}</div>`;
     }
@@ -313,7 +343,7 @@ function checkGrid() {
   }
   const done = !wrong && filled >= new Set(X.entries.flatMap(e => e.cells.map(p => key(p.r, p.c)))).size;
   $('#crossMsg').textContent = !filled ? t('crossEmpty')
-    : done ? t('crossDone')
+    : done ? (X.hints ? t('crossDoneHints')(X.hints) : t('crossDone'))
       : wrong ? t('crossWrong')(wrong) : t('crossAllRight');
   $('#crossMsg').className = 'crossmsg ' + (done ? 'good' : wrong ? 'bad' : '');
   renderCross();
@@ -321,7 +351,11 @@ function checkGrid() {
 
 function revealActive() {
   if (!X.active) return;
-  X.active.cells.forEach((p, i) => { X.letters[key(p.r, p.c)] = X.active.letters[i]; });
+  X.active.cells.forEach((p, i) => {
+    if (X.letters[key(p.r, p.c)] !== X.active.letters[i]) X.hints++;
+    X.letters[key(p.r, p.c)] = X.active.letters[i];
+    X.given[key(p.r, p.c)] = true;
+  });
   X.marks = {};
   renderCross();
 }
@@ -331,6 +365,7 @@ function crossLangRefresh() {
   $('#homeCross').innerHTML = `<span class="opt">${t('homeCross')}</span><span class="optsub">${t('homeCrossSub')}</span>`;
   $('#crossTitle').textContent = t('crossTitle');
   $('#crossHint').textContent = t('crossHint');
+  $('#crossHintBtn').textContent = t('crossHintBtn');
   $('#crossCheckBtn').textContent = t('crossCheck');
   $('#crossRevealBtn').textContent = t('crossReveal');
   $('#crossNewBtn').textContent = t('crossNew');
@@ -342,7 +377,8 @@ crossLangRefresh();
 
 $('#homeCross').onclick = () => { show('cross'); if (!X.rows) newPuzzle(); else renderCross(); };
 $('#crossBack').onclick = () => show('home');
-$('#crossNewBtn').onclick = () => { X.marks = {}; $('#crossMsg').textContent = ''; newPuzzle(); };
+$('#crossNewBtn').onclick = () => { X.marks = {}; $('#crossMsg').textContent = ''; $('#crossMsg').className = 'crossmsg'; newPuzzle(); };
+$('#crossHintBtn').onclick = giveHint;
 $('#crossCheckBtn').onclick = checkGrid;
 $('#crossRevealBtn').onclick = revealActive;
 
