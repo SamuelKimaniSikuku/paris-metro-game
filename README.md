@@ -87,6 +87,10 @@ python3 -m http.server 4321
 python3 build.py
 ```
 
+## Changing things
+
+New to GitHub? [CONTRIBUTING.md](CONTRIBUTING.md) walks through accessing, editing and committing entirely in the browser — no installs.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
