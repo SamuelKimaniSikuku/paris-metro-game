@@ -5,6 +5,8 @@ You don't need to install anything. Everything below happens in a web browser.
 The site is **https://quiz-metro.com**. The code lives at
 **https://github.com/SamuelKimaniSikuku/paris-metro-game**.
 
+Prefer it on paper? [Download the two-page PDF](docs/Editing-the-game.pdf).
+
 ---
 
 ## 1. Get a GitHub account

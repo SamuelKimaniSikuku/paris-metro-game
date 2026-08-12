@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Editing the game</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: #0b1524; background: #fff;
+    font: 10.5pt/1.55 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .eyebrow { font-size: 7.5pt; font-weight: 800; letter-spacing: .22em;
+    text-transform: uppercase; color: #e32017; margin: 0 0 6px; }
+  h1 { font-size: 27pt; line-height: 1.02; font-weight: 900; margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: .005em; }
+  .sub { color: #5b6678; font-size: 11pt; margin: 0; max-width: 46em; }
+
+  .strip { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin: 14px 0 22px; }
+  .strip i { flex: 1; }
+
+  .mark { float: right; width: 46px; height: 46px; margin: 2px 0 0 12px; }
+
+  h2 { font-size: 12.5pt; font-weight: 900; text-transform: uppercase;
+    letter-spacing: .04em; margin: 17px 0 7px; }
+
+  ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; }
+  ol.steps > li { counter-increment: s; position: relative;
+    padding: 0 0 0 34px; margin: 0 0 13px; break-inside: avoid; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: -1px;
+    width: 23px; height: 23px; border-radius: 50%;
+    background: #e32017; color: #fff; font-weight: 800; font-size: 10pt;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps b { font-weight: 800; }
+  ol.steps p { margin: 2px 0 0; color: #444d5c; }
+
+  code, .kbd { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.2pt;
+    background: #f1f4f8; padding: 1px 5px; border-radius: 3px; }
+
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 0; font-size: 9.6pt; }
+  th { text-align: left; font-size: 7.5pt; letter-spacing: .12em; text-transform: uppercase;
+    color: #5b6678; border-bottom: 1.5px solid #0b1524; padding: 0 8px 5px 0; }
+  td { border-bottom: 1px solid #dde3ec; padding: 5px 8px 5px 0; vertical-align: top; }
+  td:first-child { white-space: nowrap; font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 9pt; font-weight: 600; }
+
+  .note { border-left: 4px solid #FFCE00; background: #fffbeb;
+    padding: 9px 13px; margin: 11px 0; break-inside: avoid; }
+  .warn { border-left: 4px solid #e32017; background: #fff4f3; }
+  .note p { margin: 0; }
+  .note p + p { margin-top: 6px; }
+  .note b { font-weight: 800; }
+
+  .foot { margin-top: 11px; padding-top: 8px; border-top: 1px solid #dde3ec;
+    color: #5b6678; font-size: 8.5pt; }
+  h2 { break-after: avoid; }
+</style>
+</head>
+<body>
+
+<svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="14" fill="#0b1524"/>
+  <rect x="4" y="14" width="42" height="11" rx="5.5" fill="#FFCE00"/>
+  <rect x="35" y="14" width="11" height="46" rx="5.5" fill="#FFCE00"/>
+  <rect x="4" y="39" width="56" height="11" rx="5.5" fill="#E32017"/>
+  <circle cx="40.5" cy="44.5" r="7.5" fill="#fff"/>
+</svg>
+
+<p class="eyebrow">Correspondance · le jeu du métro</p>
+<h1>Editing the game</h1>
+<p class="sub">A guide for someone who has never used GitHub. It all happens in a web
+browser — nothing to install, and nothing you can permanently break.</p>
+
+<div class="strip">
+  <i style="background:#FFCE00"></i><i style="background:#0064B0"></i><i style="background:#9F9825"></i>
+  <i style="background:#C04191"></i><i style="background:#F28E42"></i><i style="background:#83C491"></i>
+  <i style="background:#F3A4BA"></i><i style="background:#CEADD2"></i><i style="background:#D5C900"></i>
+  <i style="background:#E3B32A"></i><i style="background:#8D5E2A"></i><i style="background:#007852"></i>
+  <i style="background:#6EC4E8"></i><i style="background:#62259D"></i><i style="background:#99D4DE"></i>
+  <i style="background:#83C491"></i>
+</div>
+
+<h2>The two addresses you need</h2>
+<table>
+  <tr><td>The game</td><td>quiz-metro.com</td></tr>
+  <tr><td>The code</td><td>github.com/SamuelKimaniSikuku/paris-metro-game</td></tr>
+</table>
+
+<h2>Step by step</h2>
+<ol class="steps">
+  <li><b>Make a GitHub account.</b>
+    <p>Go to <code>github.com/signup</code>. It's free. Use the email address Samuel
+    invited, or you won't see the invitation.</p></li>
+
+  <li><b>Accept the invitation.</b>
+    <p>GitHub emails you a green <b>Accept invitation</b> button — click it. If it never
+    arrives, sign in and open the repository address below with
+    <code>/invitations</code> on the end.</p></li>
+
+  <li><b>Open the code and find your file.</b>
+    <p>Open the repository address above. The table overleaf says what each file holds.
+    Click a file name to read it.</p></li>
+
+  <li><b>Click the pencil icon.</b>
+    <p>It sits at the top right of the file you're reading. The text becomes editable,
+    like a normal text box.</p></li>
+
+  <li><b>Make your change.</b>
+    <p>Type directly into the page. Nothing is saved yet — if you get lost, close the tab
+    and nothing at all happens.</p></li>
+
+  <li><b>Click the green “Commit changes…” button.</b>
+    <p>Top right. A small box opens. Write one short line saying what you did — for
+    example <i>“Add Bel-Air to line 6”</i> — leave <b>Commit directly to the main
+    branch</b> selected, and click the green <b>Commit changes</b> inside the box.</p>
+    <p><i>“Commit” is simply GitHub's word for “save, with a note about why”.</i></p></li>
+
+  <li><b>Wait about a minute, then look at the site.</b>
+    <p>Every commit publishes automatically. To watch it, click the <b>Actions</b> tab at
+    the top of the repository: a yellow dot means it's building, a green tick means it's
+    live. Then reload quiz-metro.com.</p>
+    <p>Page looks unchanged? That's your browser's saved copy — pull down to refresh on a
+    phone, or hold <b>Shift</b> and click reload on a computer.</p></li>
+</ol>
+
+<div class="note warn">
+  <p><b>Step 6 publishes straight to the live site.</b> If you'd rather Samuel looked
+  first, choose <b>Create a new branch for this commit and start a pull request</b> in
+  that same box instead. Nothing goes live; he gets a page showing exactly what you
+  changed, and clicks Merge when he's happy.</p>
+</div>
+
+<h2>Which file holds what</h2>
+<table>
+  <tr><th>File</th><th>What's in it</th></tr>
+  <tr><td>data.js</td><td>The métro itself — lines, stations, landmarks. <b>Most content changes are here.</b></td></tr>
+  <tr><td>index.html</td><td>Page layout and all the styling: colours, sizes, spacing</td></tr>
+  <tr><td>app.js</td><td>The quiz questions and the pass-the-phone game</td></tr>
+  <tr><td>live.js</td><td>The multiplayer rooms</td></tr>
+  <tr><td>crossword.js</td><td>The crossword</td></tr>
+  <tr><td>net.js, config.js</td><td>The plumbing that connects players. <b>Leave these alone</b> unless you know why you're changing them.</td></tr>
+</table>
+
+<h2>Two things that will save you time</h2>
+
+<div class="note">
+  <p><b>Wording appears twice.</b> The game plays in English and French. Text that players
+  read lives in the <code>T</code> block near the top of <code>app.js</code>,
+  <code>live.js</code> and <code>crossword.js</code> — each has an <code>en:</code>
+  section and an <code>fr:</code> section. Change both, or one language will drift.</p>
+</div>
+
+<div class="note">
+  <p><b>The <code>dist/</code> folder is built, not written.</b> It's the whole game
+  squeezed into a single file for playing offline. It gets regenerated, so hand edits
+  there are silently thrown away.</p>
+</div>
+
+<h2>Adding a station — the most common change</h2>
+<p>In <code>data.js</code>, find the <code>STATIONS</code> list and add a line shaped like
+its neighbours: the station name, then the lines that serve it.</p>
+<table>
+  <tr><td colspan="2"><code>"Ledru-Rollin": ["8"],</code><br><code>"Père Lachaise": ["2", "3"],</code></td></tr>
+</table>
+<p style="color:#444d5c">Keep the accents exactly as the real station writes them — the
+game strips them when checking, so <i>Pere Lachaise</i> is still marked correct.</p>
+
+<h2>If you break something</h2>
+<p>Nothing is ever lost — GitHub keeps every version of every file.</p>
+<p>Click <b>Commits</b> above the file list to see the history. Open the commit that caused
+the trouble and press <b>Revert</b>. The site goes back to how it was, usually within a
+minute. So experiment freely: that safety net is the whole point.</p>
+
+<p class="foot">Correspondance · quiz-metro.com · The current version of this guide lives in the repository as CONTRIBUTING.md</p>
+
+</body>
+</html>

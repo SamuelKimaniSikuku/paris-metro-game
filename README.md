@@ -89,7 +89,7 @@ python3 build.py
 
 ## Changing things
 
-New to GitHub? [CONTRIBUTING.md](CONTRIBUTING.md) walks through accessing, editing and committing entirely in the browser — no installs.
+New to GitHub? [CONTRIBUTING.md](CONTRIBUTING.md) walks through accessing, editing and committing entirely in the browser — no installs. There is a [two-page PDF](docs/Editing-the-game.pdf) of the same thing for sending on.
 
 ## Licence
 
