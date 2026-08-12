@@ -46,13 +46,17 @@ becomes editable. Make your change.
 
 ## 5. Commit — that means "save"
 
-Scroll to the bottom. There's a box called **Commit changes**.
+Click the green **Commit changes…** button (top right of the editor). A small box
+appears.
 
-1. In the first line, write what you did: *"Add Bel-Air to line 6"*. One short line.
-2. Leave **Commit directly to the main branch** selected.
-3. Click the green **Commit changes** button.
+1. In the message line, write what you did: *"Add Bel-Air to line 6"*. One short line.
+2. Leave **Commit directly to the `main` branch** selected.
+3. Click the green **Commit changes** button in the box.
 
 That's it. "Commit" is just GitHub's word for "save, with a note about why".
+
+> Nothing is saved until you commit. Closing the tab mid-edit throws the change
+> away — which also means you can always back out safely.
 
 ## 6. Watch it go live
 
@@ -101,9 +105,9 @@ accepted from a player who can't type accents.
 
 Committing to `main` goes live immediately. If you want Samuel to look first:
 
-1. On the edit screen, at step 5 choose **Create a new branch for this commit**
-   instead of committing to main. Accept the name it suggests.
-2. Click **Propose changes**, then **Create pull request**.
+1. In the commit box at step 5, choose **Create a new branch for this commit and
+   start a pull request** instead of committing to main. Accept the name it suggests.
+2. Click **Propose changes**, then **Create pull request** on the next screen.
 
 Nothing goes live. Samuel gets a page where he can read exactly what you changed,
 comment on it, and click **Merge** when he's happy. This is the safer habit, and
